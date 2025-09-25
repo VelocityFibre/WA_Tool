@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mail Error Screenshot</title>
+    <style>
+        .error-box {
+            background-color: #fff8e1;
+            border: 1px solid #ffecb3;
+            padding: 20px;
+            width: 500px;
+            font-family: Arial, sans-serif;
+        }
+        .header {
+            background-color: #ffd54f;
+            padding: 10px;
+            margin: -20px -20px 20px -20px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .error-message {
+            color: red;
+            margin: 10px 0;
+        }
+        .form-row {
+            margin: 10px 0;
+            display: flex;
+        }
+        .form-label {
+            width: 120px;
+            text-align: right;
+            padding-right: 10px;
+        }
+        .form-input {
+            flex: 1;
+        }
+        .button-row {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .button {
+            padding: 5px 10px;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-box">
+        <div class="header">Add a mail account</div>
+        <div>Enter the mail settings for louis@velocityfibre.co.za. <a href="#">Learn more</a></div>
+        <hr>
+        <div class="form-row">
+            <div class="form-label">Email address:</div>
+            <div class="form-input">louis@velocityfibre.co.za</div>
+        </div>
+        <div class="error-message">
+            Server denied POP3 access for the given username and password.<br>
+            Server returned error: "[AUTH] Authentication failed."
+        </div>
+        <div class="form-row">
+            <div class="form-label">Username:</div>
+            <div class="form-input"><input type="text" value="louis@velocityfibre.co.za" style="width: 100%"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-label">Password:</div>
+            <div class="form-input"><input type="password" value="********" style="width: 100%"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-label">POP Server:</div>
+            <div class="form-input">
+                <input type="text" value="mail.velocityfibre.co.za" style="width: 70%">
+                Port: 
+                <select>
+                    <option value="110" selected>110</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-input">
+                <input type="checkbox" checked> Leave a copy of retrieved message on the server.
+                <a href="#">Learn more</a>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-input">
+                <input type="checkbox" checked> Always use a secure connection (SSL) when retrieving mail.
+                <a href="#">Learn more</a>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-label">Label incoming messages:</div>
+            <div class="form-input">
+                <input type="text" value="louis@velocityfibre.co.za" style="width: 100%">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-input">
+                <input type="checkbox" checked> Archive incoming messages (Skip the Inbox)
+            </div>
+        </div>
+        <div class="button-row">
+            <button class="button">Cancel</button>
+            <button class="button">« Back</button>
+            <button class="button">Add Account »</button>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,101 @@
+https://github.com/lharries/whatsapp-mcp
+
+# WhatsApp MCP Project Plan
+
+## Phase 1: Setup and Local Implementation ✅
+- Clone the WhatsApp MCP repository
+- Set up the Go WhatsApp bridge
+- Set up the Python MCP server
+- Connect to WhatsApp via QR code
+- Verify message storage in SQLite database
+
+## Phase 2: Data Storage and Processing
+- Create a Neon PostgreSQL database for centralized cloud storage
+  - Sign up at https://neon.tech/
+  - Create database schema for WhatsApp messages
+- Develop a sync agent to transfer data from SQLite to Neon
+  - Implement daily sync schedule
+  - Focus on specific WhatsApp groups (Velocity/Fibretime subbies)
+- Add speech-to-text capabilities for audio messages
+  - Investigate Eleven Labs (https://try.elevenlabs.io/w4ingvz3918j)
+  - Starter plan ($5/month for 30,000 credits) for testing
+  - Premium plan ($22/month) for production (supports 16 hours of meetings)
+
+## Phase 3: Analysis and Reporting
+- Develop AI agent to analyze WhatsApp messages
+- Create structured reports from message data
+- Implement keyword and topic monitoring
+- Set up alerts for important messages
+
+## Phase 4: VPS Deployment
+- Containerize the application using Docker
+  ```dockerfile
+  # WhatsApp Bridge Dockerfile
+  FROM golang:1.19
+  WORKDIR /app
+  COPY whatsapp-bridge/ .
+  RUN go build -o whatsapp-bridge
+  VOLUME /app/store
+  EXPOSE 8080
+  CMD ["./whatsapp-bridge"]
+  
+  # MCP Server Dockerfile
+  FROM python:3.9-slim
+  WORKDIR /app
+  COPY whatsapp-mcp-server/ .
+  RUN pip install -r requirements.txt
+  EXPOSE 8000
+  CMD ["python", "main.py"]
+  ```
+  
+- Create docker-compose.yml for easy deployment
+  ```yaml
+  version: '3'
+  services:
+    whatsapp-bridge:
+      build: ./whatsapp-bridge
+      volumes:
+        - ./data:/app/store
+      ports:
+        - "8080:8080"
+      restart: unless-stopped
+    
+    mcp-server:
+      build: ./whatsapp-mcp-server
+      depends_on:
+        - whatsapp-bridge
+      environment:
+        - WHATSAPP_API_URL=http://whatsapp-bridge:8080
+      restart: unless-stopped
+  ```
+
+- Deploy to VPS with appropriate resources:
+  - CPU: 1-2 cores
+  - RAM: 2-4 GB
+  - Storage: 20+ GB
+  - OS: Ubuntu 22.04 or Debian 11/12
+
+- Implement Dockge for container management
+  - https://github.com/louislam/dockge
+  - Installation:
+    ```bash
+    mkdir -p /opt/stacks /opt/dockge
+    cd /opt/dockge
+    curl https://raw.githubusercontent.com/louislam/dockge/master/compose.yaml --output compose.yaml
+    docker compose up -d
+    ```
+  - Access Dockge UI at http://your-vps-ip:5001
+  - Create and manage WhatsApp MCP stacks through the UI
+  - Monitor logs and container status in real-time
+
+## Phase 5: Integration and Expansion
+- Connect with other systems (Airtable, etc.)
+- Add support for multiple WhatsApp accounts
+- Implement advanced analytics
+- Create custom dashboards
+
+## Resources
+- WhatsApp MCP GitHub: https://github.com/lharries/whatsapp-mcp
+- Neon PostgreSQL: https://neon.tech/
+- Eleven Labs: https://try.elevenlabs.io/w4ingvz3918j
+- Dockge: https://github.com/louislam/dockge

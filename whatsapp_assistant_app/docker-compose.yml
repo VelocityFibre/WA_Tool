@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  whatsapp-assistant:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"  # Frontend
+      - "5000:5000"  # Backend API
+      - "3000:3000"  # WhatsApp MCP
+    volumes:
+      - whatsapp-data:/app/whatsapp-mcp/whatsapp-bridge/store
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4}
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - WHATSAPP_MCP_URL=http://localhost:3000
+    restart: unless-stopped
+
+volumes:
+  whatsapp-data:
+    # This volume persists WhatsApp session data between container restarts

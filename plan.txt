@@ -1,0 +1,197 @@
+https://github.com/lharries/whatsapp-mcp
+
+# WhatsApp MCP Project Plan
+
+## Phase 1: Setup and Local Implementation ✅
+- Clone the WhatsApp MCP repository
+- Set up the Go WhatsApp bridge
+- Set up the Python MCP server
+- Connect to WhatsApp via QR code
+- Verify message storage in SQLite database
+
+## Phase 2: Data Storage and Processing
+- Create a Neon PostgreSQL database for centralized cloud storage
+  - Sign up at https://neon.tech/
+  - Create database schema for WhatsApp messages
+- Develop a sync agent to transfer data from SQLite to Neon
+  - Implement daily sync schedule
+  - Focus on specific WhatsApp groups (Velocity/Fibretime subbies)
+- Add speech-to-text capabilities for audio messages
+  - Investigate Eleven Labs (https://try.elevenlabs.io/w4ingvz3918j)
+  - Starter plan ($5/month for 30,000 credits) for testing
+  - Premium plan ($22/month) for production (supports 16 hours of meetings)
+
+## Phase 3: Analysis and Reporting
+- Develop AI agent to analyze WhatsApp messages
+- Create structured reports from message data
+- Implement keyword and topic monitoring
+- Set up alerts for important messages
+
+## Phase 4: VPS Deployment
+- Containerize the application using Docker
+  ```dockerfile
+  # WhatsApp Bridge Dockerfile
+  FROM golang:1.19
+  WORKDIR /app
+  COPY whatsapp-bridge/ .
+  RUN go build -o whatsapp-bridge
+  VOLUME /app/store
+  EXPOSE 8080
+  CMD ["./whatsapp-bridge"]
+  
+  # MCP Server Dockerfile
+  FROM python:3.9-slim
+  WORKDIR /app
+  COPY whatsapp-mcp-server/ .
+  RUN pip install -r requirements.txt
+  EXPOSE 8000
+  CMD ["python", "main.py"]
+  ```
+  
+- Create docker-compose.yml for easy deployment
+  ```yaml
+  version: '3'
+  services:
+    whatsapp-bridge:
+      build: ./whatsapp-bridge
+      volumes:
+        - ./data:/app/store
+      ports:
+        - "8080:8080"
+      restart: unless-stopped
+    
+    mcp-server:
+      build: ./whatsapp-mcp-server
+      depends_on:
+        - whatsapp-bridge
+      environment:
+        - WHATSAPP_API_URL=http://whatsapp-bridge:8080
+      restart: unless-stopped
+  ```
+
+- Deploy to VPS with appropriate resources:
+  - CPU: 1-2 cores
+  - RAM: 2-4 GB
+  - Storage: 20+ GB
+  - OS: Ubuntu 22.04 or Debian 11/12
+
+- Implement Dockge for container management
+  - https://github.com/louislam/dockge
+  - Installation:
+    ```bash
+    mkdir -p /opt/stacks /opt/dockge
+    cd /opt/dockge
+    curl https://raw.githubusercontent.com/louislam/dockge/master/compose.yaml --output compose.yaml
+    docker compose up -d
+    ```
+  - Access Dockge UI at http://your-vps-ip:5001
+  - Create and manage WhatsApp MCP stacks through the UI
+  - Monitor logs and container status in real-time
+
+## Phase 5: Integration and Expansion
+- Connect with other systems (Airtable, etc.)
+- Add support for multiple WhatsApp accounts
+- Implement advanced analytics
+- Create custom dashboards
+
+## Resources
+- WhatsApp MCP GitHub: https://github.com/lharries/whatsapp-mcp
+- Neon PostgreSQL: https://neon.tech/
+- Eleven Labs: https://try.elevenlabs.io/w4ingvz3918j
+- Dockge: https://github.com/louislam/dockge
+
+## Original WhatsApp MCP Tools
+Claude can access the following tools to interact with WhatsApp:
+
+search_contacts: Search for contacts by name or phone number
+list_messages: Retrieve messages with optional filters and context
+list_chats: List available chats with metadata
+get_chat: Get information about a specific chat
+get_direct_chat_by_contact: Find a direct chat with a specific contact
+get_contact_chats: List all chats involving a specific contact
+get_last_interaction: Get the most recent message with a contact
+get_message_context: Retrieve context around a specific message
+send_message: Send a WhatsApp message to a specified phone number or group JID
+send_file: Send a file (image, video, raw audio, document) to a specified recipient
+send_audio_message: Send an audio file as a WhatsApp voice message (requires the file to be an .ogg opus file or ffmpeg must be installed)
+download_media: Download media from a WhatsApp message and get the local file path
+Media Handling Features
+The MCP server supports both sending and receiving various media types:
+
+Media Sending
+You can send various media types to your WhatsApp contacts:
+
+Images, Videos, Documents: Use the send_file tool to share any supported media type.
+Voice Messages: Use the send_audio_message tool to send audio files as playable WhatsApp voice messages.
+For optimal compatibility, audio files should be in .ogg Opus format.
+With FFmpeg installed, the system will automatically convert other audio formats (MP3, WAV, etc.) to the required format.
+Without FFmpeg, you can still send raw audio files using the send_file tool, but they won't appear as playable voice messages.
+Media Downloading
+By default, just the metadata of the media is stored in the local database. The message will indicate that media was sent. To access this media you need to use the download_media tool which takes the message_id and chat_jid (which are shown when printing messages containing the meda), this downloads the media and then returns the file path which can be then opened or passed to another tool.
+
+Technical Details
+Claude sends requests to the Python MCP server
+The MCP server queries the Go bridge for WhatsApp data or directly to the SQLite database
+The Go accesses the WhatsApp API and keeps the SQLite database up to date
+Data flows back through the chain to Claude
+When sending messages, the request flows from Claude through the MCP server to the Go bridge and to WhatsApp
+Troubleshooting
+If you encounter permission issues when running uv, you may need to add it to your PATH or use the full path to the executable.
+Make sure both the Go application and the Python server are running for the integration to work properly.
+Authentication Issues
+QR Code Not Displaying: If the QR code doesn't appear, try restarting the authentication script. If issues persist, check if your terminal supports displaying QR codes.
+WhatsApp Already Logged In: If your session is already active, the Go bridge will automatically reconnect without showing a QR code.
+Device Limit Reached: WhatsApp limits the number of linked devices. If you reach this limit, you'll need to remove an existing device from WhatsApp on your phone (Settings > Linked Devices).
+No Messages Loading: After initial authentication, it can take several minutes for your message history to load, especially if you have many chats.
+WhatsApp Out of Sync: If your WhatsApp messages get out of sync with the bridge, delete both database files (whatsapp-bridge/store/messages.db and whatsapp-bridge/store/whatsapp.db) and restart the bridge to re-authenticate.
+For additional Claude Desktop integration troubleshooting, see the MCP documentation. The documentation includes helpful tips for checking logs and resolving common issues.
+
+About
+WhatsApp MCP server
+
+x.com/LukeHarries_/status/1905986562388635913
+Topics
+ai mcp whatsapp whatsapp-api
+Resources
+ Readme
+License
+ MIT license
+ Activity
+Stars
+ 3.7k stars
+Watchers
+ 33 watching
+Forks
+ 490 forks
+Report repository
+Releases 1
+v0.0.1 - Groups and media file support
+Latest
+on Apr 6
+Packages
+No packages published
+Contributors
+6
+@lharries
+@yaniv-golan
+@aastroza
+@cs4alhaider
+@alain-sv
+Languages
+Go
+51.2%
+
+Python
+48.8%
+Footer
+© 2025 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Docs
+Contact
+Manage cookies
+Do not share my personal information
+

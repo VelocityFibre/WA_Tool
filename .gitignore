@@ -1,0 +1,81 @@
+# Python cache (NOT .py files!)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Old script iterations to exclude
+get_melanie_messages.py
+get_melanie_messages_updated.py
+get_melanie_messages_direct.py
+get_melanie_messages_api.py
+get_melanie_messages_db.py
+get_melanie_messages_db_fixed.py
+get_melanie_messages_final.py
+
+# Test/personal scripts
+send_smile_to_koos.py
+send_to_hein.py
+send_to_marius.py
+send_lucky_message.py
+send_reply_sleep.py
+send_declaration_640.py
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+bridge/bridge
+
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (for web_app frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build directories
+build/
+dist/
+*.build/
+
+# Media and extracted files
+extracted_files/
+downloads/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
