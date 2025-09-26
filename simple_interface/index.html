@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            height: 80vh;
+        }
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            background: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .status.disconnected {
+            background: #f44336;
+        }
+        .contacts-list, .messages-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .contact-item, .message-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .contact-item:hover {
+            background-color: #f0f0f0;
+        }
+        .message-item.from-me {
+            background-color: #e3f2fd;
+            margin-left: 20px;
+        }
+        .message-item.from-them {
+            background-color: #f3e5f5;
+            margin-right: 20px;
+        }
+        .message-form {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .message-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background: #1976D2;
+        }
+        .btn.ai {
+            background: #FF9800;
+        }
+        .btn.ai:hover {
+            background: #F57C00;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>WhatsApp Tool</h1>
+    
+    <div id="status" class="status disconnected">
+        Checking connection...
+    </div>
+    
+    <div class="container">
+        <div class="panel">
+            <h2>Contacts & Chats</h2>
+            <div id="contacts" class="contacts-list">
+                <div class="loading">Loading contacts...</div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>Messages</h2>
+            <div id="selectedContact">Select a contact to view messages</div>
+            <div id="messages" class="messages-list"></div>
+            
+            <div class="message-form">
+                <input type="text" id="messageInput" class="message-input" placeholder="Type your message..." disabled>
+                <button id="sendBtn" class="btn" disabled>Send</button>
+                <button id="aiSendBtn" class="btn ai" disabled>AI Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let currentContact = null;
+        
+        // Check status
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/status`);
+                const data = await response.json();
+                const statusEl = document.getElementById('status');
+                
+                if (data.whatsapp_connected) {
+                    statusEl.textContent = 'WhatsApp Connected ✓';
+                    statusEl.className = 'status';
+                    loadContacts();
+                } else {
+                    statusEl.textContent = 'WhatsApp Disconnected - Scan QR code in terminal';
+                    statusEl.className = 'status disconnected';
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+                document.getElementById('status').textContent = 'Backend Not Connected';
+            }
+        }
+        
+        // Load contacts
+        async function loadContacts() {
+            try {
+                const response = await fetch(`${API_BASE}/chats`);
+                const data = await response.json();
+                const contactsEl = document.getElementById('contacts');
+                
+                if (data && data.length) {
+                    contactsEl.innerHTML = data.map(chat => `
+                        <div class="contact-item" onclick="selectContact('${chat.jid}', '${chat.name || chat.jid}')">
+                            <strong>${chat.name || chat.jid}</strong>
+                            <br><small>${chat.jid}</small>
+                        </div>
+                    `).join('');
+                } else {
+                    contactsEl.innerHTML = '<div class="loading">No contacts found</div>';
+                }
+            } catch (error) {
+                console.error('Error loading contacts:', error);
+                document.getElementById('contacts').innerHTML = '<div class="loading">Error loading contacts</div>';
+            }
+        }
+        
+        // Select contact
+        function selectContact(jid, name) {
+            currentContact = { jid, name };
+            document.getElementById('selectedContact').textContent = `Chat with: ${name}`;
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('aiSendBtn').disabled = false;
+            loadMessages(jid);
+        }
+        
+        // Load messages
+        async function loadMessages(jid) {
+            try {
+                const response = await fetch(`${API_BASE}/messages/${encodeURIComponent(jid)}`);
+                const data = await response.json();
+                const messagesEl = document.getElementById('messages');
+                
+                if (data && data.length) {
+                    messagesEl.innerHTML = data.map(msg => `
+                        <div class="message-item ${msg.is_from_me ? 'from-me' : 'from-them'}">
+                            <small>${new Date(msg.timestamp * 1000).toLocaleString()}</small>
+                            <div>${msg.content || '[Media]'}</div>
+                        </div>
+                    `).join('');
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                } else {
+                    messagesEl.innerHTML = '<div class="loading">No messages found</div>';
+                }
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                document.getElementById('messages').innerHTML = '<div class="loading">Error loading messages</div>';
+            }
+        }
+        
+        // Send message
+        async function sendMessage(useAI = false) {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || !currentContact) return;
+            
+            const endpoint = useAI ? '/assistant' : '/send';
+            const payload = useAI ? 
+                { recipient: currentContact.jid, prompt: message } :
+                { recipient: currentContact.jid, message: message };
+            
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    messageInput.value = '';
+                    // Reload messages after a short delay
+                    setTimeout(() => loadMessages(currentContact.jid), 1000);
+                } else {
+                    alert('Error: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Error sending message');
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('sendBtn').onclick = () => sendMessage(false);
+        document.getElementById('aiSendBtn').onclick = () => sendMessage(true);
+        document.getElementById('messageInput').onkeypress = (e) => {
+            if (e.key === 'Enter') sendMessage(false);
+        };
+        
+        // Initialize
+        checkStatus();
+        setInterval(checkStatus, 30000); // Check status every 30 seconds
+    </script>
+</body>
+</html>
