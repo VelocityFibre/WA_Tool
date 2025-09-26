@@ -1,5 +1,7 @@
 # WARP.md
 
+**🤖 AI AGENTS**: This directory contains the **WA_Tool** - WhatsApp Assistant Tool v2.0.0 for project-based group monitoring. See `MODULE_IDENTITY.md` and `AI_AGENT_GUIDE.md` for complete context.
+
 This file provides guidance to WARP (warp.dev) when working with code in this repository.
 
 > **System Context**: WA_Tool is part of a larger system. See `/home/louisdup/VF/Apps/SYSTEM_ARCHITECTURE.md` for the complete system overview and integration with VF_Drops.
