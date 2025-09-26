@@ -2,6 +2,8 @@
 
 This file provides guidance to WARP (warp.dev) when working with code in this repository.
 
+> **System Context**: WA_Tool is part of a larger system. See `/home/louisdup/VF/Apps/SYSTEM_ARCHITECTURE.md` for the complete system overview and integration with VF_Drops.
+
 ## Project Overview
 
 The WhatsApp Assistant Tool (WA_Tool) is a comprehensive WhatsApp monitoring and automation system with AI integration. It consists of multiple components working together to provide WhatsApp connectivity, AI-powered message processing, and web-based user interfaces.

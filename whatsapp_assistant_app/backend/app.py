@@ -30,8 +30,7 @@ LLM_PROVIDER = os.environ.get('LLM_PROVIDER', 'openai')  # openai, anthropic, et
 os.makedirs(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data'), exist_ok=True)
 
 # Path to the WhatsApp messages database
-MESSAGES_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
-                              '../whatsapp-mcp/whatsapp-bridge/store/messages.db')
+MESSAGES_DB_PATH = '/home/louisdup/VF/Apps/WA_Tool/whatsapp-mcp/whatsapp-bridge/store/messages.db'
 
 # Initialize LLM client
 if LLM_PROVIDER == 'openai' and LLM_API_KEY:
@@ -138,12 +137,141 @@ def get_chats():
     response = call_whatsapp_api("chats")
     return jsonify(response)
 
+@app.route('/api/projects', methods=['GET'])
+def get_projects():
+    """Get all available projects"""
+    conn = connect_to_whatsapp_db()
+    if not conn:
+        return jsonify({"success": False, "message": "Database connection failed"})
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT project_name, COUNT(*) as chat_count
+            FROM chats 
+            WHERE project_name IS NOT NULL AND project_name != '' 
+            GROUP BY project_name
+            ORDER BY project_name
+        """)
+        
+        projects = []
+        for row in cursor.fetchall():
+            projects.append({
+                "name": row[0],
+                "chat_count": row[1]
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({"success": True, "projects": projects})
+        
+    except Exception as e:
+        logger.error(f"Error getting projects: {e}")
+        return jsonify({"success": False, "message": str(e)})
+
+@app.route('/api/chats/<project_name>', methods=['GET'])
+def get_chats_by_project(project_name):
+    """Get WhatsApp chats filtered by project"""
+    conn = connect_to_whatsapp_db()
+    if not conn:
+        return jsonify({"success": False, "message": "Database connection failed"})
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT jid, name, last_message_time, project_name
+            FROM chats 
+            WHERE project_name = ? AND project_name != ''
+            ORDER BY last_message_time DESC
+        """, (project_name,))
+        
+        chats = []
+        for row in cursor.fetchall():
+            chats.append({
+                "jid": row[0],
+                "name": row[1],
+                "last_message_time": row[2],
+                "project_name": row[3]
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({"success": True, "chats": chats})
+        
+    except Exception as e:
+        logger.error(f"Error getting chats for project {project_name}: {e}")
+        return jsonify({"success": False, "message": str(e)})
+
 @app.route('/api/messages/<chat_jid>', methods=['GET'])
 def get_messages(chat_jid):
     """Get messages for a specific chat"""
     limit = request.args.get('limit', 20)
     response = call_whatsapp_api(f"messages/{chat_jid}?limit={limit}")
     return jsonify(response)
+
+@app.route('/api/messages/<project_name>/<chat_jid>', methods=['GET'])
+def get_project_messages(project_name, chat_jid):
+    """Get messages for a specific chat within a project"""
+    conn = connect_to_whatsapp_db()
+    if not conn:
+        return jsonify({"success": False, "message": "Database connection failed"})
+    
+    try:
+        # First verify the chat belongs to the specified project
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT project_name FROM chats WHERE jid = ?", 
+            (chat_jid,)
+        )
+        
+        result = cursor.fetchone()
+        if not result:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": "Chat not found"})
+        
+        if result[0] != project_name:
+            cursor.close()
+            conn.close()
+            return jsonify({"success": False, "message": f"Chat does not belong to project {project_name}"})
+        
+        # Get messages
+        limit = request.args.get('limit', 20, type=int)
+        cursor.execute("""
+            SELECT id, sender, content, timestamp, is_from_me, media_type, filename
+            FROM messages 
+            WHERE chat_jid = ?
+            ORDER BY timestamp DESC 
+            LIMIT ?
+        """, (chat_jid, limit))
+        
+        messages = []
+        for row in cursor.fetchall():
+            messages.append({
+                "id": row[0],
+                "sender": row[1],
+                "content": row[2],
+                "timestamp": row[3],
+                "is_from_me": bool(row[4]),
+                "media_type": row[5],
+                "filename": row[6]
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            "success": True,
+            "messages": messages,
+            "project_name": project_name,
+            "chat_jid": chat_jid
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting messages for project {project_name}, chat {chat_jid}: {e}")
+        return jsonify({"success": False, "message": str(e)})
 
 @app.route('/api/send', methods=['POST'])
 def send_message():

@@ -1,6 +1,8 @@
 # WhatsApp Tool (WA_Tool) Setup Guide
 
-A comprehensive WhatsApp monitoring and automation tool with AI integration.
+A comprehensive WhatsApp monitoring and automation tool with AI integration, designed for tracking designated project groups.
+
+**🆕 Version 2.0.0** - Now includes project-based group tracking for Lawley and Velo Test projects.
 
 ## 🚀 Quick Start
 
@@ -140,6 +142,10 @@ python3 -m http.server 3001
 - ✅ AI-powered message responses
 - ✅ Template system
 - ✅ Message scheduling
+- 🆕 **Project-based group tracking**
+- 🆕 **Project-specific APIs and filtering**
+- 🆕 **Neon database integration**
+- 🆕 **Real-time drop number monitoring**
 
 ### WhatsApp Capabilities
 - Send/receive text messages
@@ -153,6 +159,39 @@ python3 -m http.server 3001
 - Context-aware responses
 - Multiple LLM provider support (OpenAI, Anthropic, OpenRouter)
 - Custom prompt templates
+
+### 🏗️ Project Tracking (NEW in v2.0.0)
+
+#### Supported Projects
+| Project | WhatsApp Group | Description |
+|---------|----------------|-------------|
+| **Lawley** | `120363418298130331@g.us` | Lawley Activation 3 group |
+| **Velo Test** | `120363421664266245@g.us` | Velo Test group |
+
+#### Project-Specific APIs
+```bash
+# Get all projects
+GET /api/projects
+
+# Get chats for a specific project
+GET /api/chats/Lawley
+GET /api/chats/Velo%20Test
+
+# Get messages for project chat
+GET /api/messages/Lawley/120363418298130331@g.us
+GET /api/messages/Velo%20Test/120363421664266245@g.us
+```
+
+#### Features
+- 🎯 **Focused Monitoring**: Only tracks designated project groups
+- 🔄 **Real-time Sync**: Automatic drop number detection and Neon DB sync
+- 📊 **Separate Dashboards**: Project-specific data visualization
+- ⚡ **Fast Filtering**: Optimized queries for project-based data
+
+#### Database Integration
+- **SQLite**: Local chat and message storage with project classification
+- **Neon PostgreSQL**: Cloud database for installations and QA reviews
+- **Auto-sync**: Real-time drop number monitoring with 15-second intervals
 
 ## 🐛 Troubleshooting
 
