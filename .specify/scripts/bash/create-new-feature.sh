@@ -71,14 +71,8 @@ BRANCH_NAME=$(echo "$FEATURE_DESCRIPTION" | tr '[:upper:]' '[:lower:]' | sed 's/
 WORDS=$(echo "$BRANCH_NAME" | tr '-' '\n' | grep -v '^$' | head -3 | tr '\n' '-' | sed 's/-$//')
 BRANCH_NAME="${FEATURE_NUM}-${WORDS}"
 
-# Check if we're on master/main - if so, don't create a new branch
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
-
-if [ "$HAS_GIT" = true ] && [ "$CURRENT_BRANCH" != "master" ] && [ "$CURRENT_BRANCH" != "main" ]; then
+if [ "$HAS_GIT" = true ]; then
     git checkout -b "$BRANCH_NAME"
-elif [ "$HAS_GIT" = true ]; then
-    >&2 echo "[specify] Working on $CURRENT_BRANCH branch - using master/main workflow"
-    # Keep using numbered directories but stay on current branch
 else
     >&2 echo "[specify] Warning: Git repository not detected; skipped branch creation for $BRANCH_NAME"
 fi
