@@ -1,0 +1,16 @@
+total 88
+drwxrwxr-x  6 louisdup louisdup  4096 Oct  3 14:59 .
+drwxrwxr-x 15 louisdup louisdup  4096 Oct  3 13:44 ..
+drwxrwxr-x  2 louisdup louisdup  4096 Oct  3 14:29 config
+-rw-rw-r--  1 louisdup louisdup     0 Oct  3 14:59 DIRECTORY_CONTENTS_OCT3_2025.txt
+drwxrwxr-x  2 louisdup louisdup  4096 Oct  3 14:29 logs
+drwxrwxr-x  6 louisdup louisdup  4096 Oct  3 14:43 photos
+-rw-rw-r--  1 louisdup louisdup  9014 Oct  3 14:18 PHOTO_UPLOAD_DEVELOPMENT_PLAN.md
+drwxrwxr-x  2 louisdup louisdup  4096 Oct  3 14:43 __pycache__
+-rw-rw-r--  1 louisdup louisdup  1702 Oct  3 14:51 README.md
+-rw-rw-r--  1 louisdup louisdup 14857 Oct  3 14:29 simple_photo_upload.py
+-rw-rw-r--  1 louisdup louisdup  8935 Oct  3 14:42 simple_upload.py
+-rw-rw-r--  1 louisdup louisdup  7148 Oct  3 14:57 STEP1_COMPLETION_SUMMARY_OCT3_2025.md
+-rw-rw-r--  1 louisdup louisdup  6845 Oct  3 14:30 test_setup.py
+-rw-rw-r--  1 louisdup louisdup  3669 Oct  3 14:42 test_simple.py
+=== STEP 1 COMPLETE - Fri Oct  3 02:59:59 PM SAST 2025 ===
