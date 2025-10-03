@@ -80,3 +80,4 @@ downloads/
 temp/
 tmp/sheets-api-*.json
 credentials.json
+google-credentials.json

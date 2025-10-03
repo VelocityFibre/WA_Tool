@@ -1,0 +1,30 @@
+[Unit]
+Description=Google Sheets QA Monitor for Incomplete Flags
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=louisdup
+Group=louisdup
+WorkingDirectory=/home/louisdup/VF/Apps/WA_Tool/whatsapp-mcp/whatsapp-mcp-server
+ExecStart=/home/louisdup/.local/bin/uv run python google_sheets_qa_monitor.py --interval 60
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=google-sheets-qa-monitor
+
+# Environment
+Environment=PYTHONUNBUFFERED=1
+Environment=GSHEET_ID=1TYxDLyCqDHr0Imb5j7X4uJhxccgJTO0KrDVAD0Ja0Dk
+Environment=GOOGLE_APPLICATION_CREDENTIALS=/home/louisdup/VF/Apps/google_sheets/sheets-credentials.json
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
