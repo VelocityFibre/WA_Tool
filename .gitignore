@@ -78,4 +78,5 @@ downloads/
 *.tmp
 *.temp
 temp/
-tmp/
+tmp/sheets-api-*.json
+credentials.json

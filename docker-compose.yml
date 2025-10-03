@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # WhatsApp Bridge with Privacy Filter
+  whatsapp-bridge:
+    build:
+      context: ./whatsapp-mcp/whatsapp-bridge
+      dockerfile: Dockerfile
+    container_name: wa-bridge-privacy
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # Persistent WhatsApp sessions and message data (privacy filtered)
+      - ./docker-data/whatsapp-sessions:/app/store
+      - ./docker-data/bridge-logs:/app/logs
+    environment:
+      - NEON_DB_URL=${NEON_DB_URL}
+    networks:
+      - wa-network
+    healthcheck:
+      disable: true
+
+  # Realtime Drop Monitor
+  drop-monitor:
+    build:
+      context: ./whatsapp-mcp/whatsapp-mcp-server
+      dockerfile: Dockerfile
+    container_name: wa-drop-monitor
+    restart: unless-stopped
+    depends_on:
+      - whatsapp-bridge
+    volumes:
+      - ./docker-data/monitor-logs:/app/logs
+      # Mount Google credentials if available
+      - ./credentials.json:/app/credentials.json:ro
+      # Mount WhatsApp database
+      - ./docker-data/whatsapp-sessions:/app/store:ro
+    environment:
+      - WHATSAPP_API_URL=http://whatsapp-bridge:8080
+      - NEON_DB_URL=${NEON_DB_URL}
+      - GSHEET_ID=${GSHEET_ID}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - WHATSAPP_DB_PATH=/app/store/messages.db
+    networks:
+      - wa-network
+    healthcheck:
+      disable: true
+    command: ["python", "realtime_drop_monitor.py", "--interval", "15"]
+
+  # QA Monitor Service
+  qa-monitor:
+    build:
+      context: ./whatsapp-mcp/whatsapp-mcp-server
+      dockerfile: Dockerfile
+    container_name: wa-qa-monitor
+    restart: unless-stopped
+    depends_on:
+      - whatsapp-bridge
+    volumes:
+      - ./docker-data/monitor-logs:/app/logs
+      - ./credentials.json:/app/credentials.json:ro
+      # Mount WhatsApp database
+      - ./docker-data/whatsapp-sessions:/app/store:ro
+    environment:
+      - WHATSAPP_API_URL=http://whatsapp-bridge:8080
+      - NEON_DB_URL=${NEON_DB_URL}
+      - GSHEET_ID=${GSHEET_ID}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - WHATSAPP_DB_PATH=/app/store/messages.db
+    networks:
+      - wa-network
+    healthcheck:
+      disable: true
+    command: ["python", "google_sheets_qa_monitor.py", "--interval", "60"]
+
+  # Mohadin Resubmission Monitor
+  mohadin-monitor:
+    build:
+      context: ./whatsapp-mcp/whatsapp-mcp-server
+      dockerfile: Dockerfile
+    container_name: wa-mohadin-monitor
+    restart: unless-stopped
+    depends_on:
+      - whatsapp-bridge
+    volumes:
+      - ./docker-data/monitor-logs:/app/logs
+      - ./credentials.json:/app/credentials.json:ro
+      # Mount WhatsApp database
+      - ./docker-data/whatsapp-sessions:/app/store:ro
+    environment:
+      - WHATSAPP_API_URL=http://whatsapp-bridge:8080
+      - NEON_DB_URL=${NEON_DB_URL}
+      - GSHEET_ID=${GSHEET_ID}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - WHATSAPP_DB_PATH=/app/store/messages.db
+    networks:
+      - wa-network
+    healthcheck:
+      disable: true
+    command: ["python", "mohadin_message_monitor.py", "--interval", "30"]
+
+networks:
+  wa-network:
+    driver: bridge
+    name: wa-network
