@@ -43,7 +43,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 from qa_feedback_communicator import (
-    get_missing_steps, create_feedback_message, send_feedback_to_group, 
+    get_missing_steps, create_feedback_message, send_feedback_to_group, send_feedback_to_agent,
     mark_feedback_sent, QA_STEPS, PROJECTS, NEON_DB_URL
 )
 
@@ -232,9 +232,9 @@ def trigger_qa_feedback(drop_data: Dict, dry_run: bool = False) -> bool:
         
         # Create feedback message
         message = create_feedback_message(drop_number, missing_steps, project_name, user)
-        
-        # Send to appropriate project group
-        success = send_feedback_to_group(project_name, message, dry_run)
+
+        # Send feedback directly to the agent who submitted the drop number
+        success = send_feedback_to_agent(drop_number, project_name, message, dry_run)
         
         if success and not dry_run:
             # Try to mark as sent in Neon database if record exists
@@ -260,8 +260,9 @@ def monitor_sheets_for_incomplete(dry_run: bool = False, check_interval: int = 6
     logger.info(f"🎯 Watching column V (Incomplete) for changes")
     logger.info("=" * 70)
     
-    # Track previously processed incomplete flags
-    processed_incomplete = set()
+    # Track previously processed incomplete flags and feedback sent
+    processed_incomplete = set()  # Tracks {sheet_name}_{drop_number}_{row_index} for current state
+    feedback_sent_history = set()  # Tracks {drop_number} to prevent duplicate feedback
     
     while True:
         try:
@@ -305,24 +306,36 @@ def monitor_sheets_for_incomplete(dry_run: bool = False, check_interval: int = 6
                     
                     if is_incomplete:
                         incomplete_found += 1
-                        
+
                         if row_key not in processed_incomplete:
                             logger.info(f"🚨 NEW INCOMPLETE: {drop_number} (Row {row_index + 1})")
-                            
+
                             # Sync to Neon database (optional, won't block sheet processing)
                             sync_incomplete_to_neon(drop_number, True)
-                            
-                            # Trigger QA feedback based on sheet data
-                            if trigger_qa_feedback(parsed_row, dry_run):
-                                feedback_sent += 1
-                                processed_incomplete.add(row_key)
+
+                            # Check if feedback already sent for this drop number
+                            if drop_number not in feedback_sent_history:
+                                # Trigger QA feedback based on sheet data
+                                if trigger_qa_feedback(parsed_row, dry_run):
+                                    feedback_sent += 1
+                                    feedback_sent_history.add(drop_number)
+                                    processed_incomplete.add(row_key)
+                                    logger.info(f"✅ Feedback sent and recorded for {drop_number}")
+                                else:
+                                    logger.error(f"❌ Failed to send feedback for {drop_number}")
                             else:
-                                logger.error(f"❌ Failed to send feedback for {drop_number}")
+                                logger.info(f"⏭️  Feedback already sent for {drop_number} - skipping")
+                                processed_incomplete.add(row_key)  # Mark as processed to avoid repeated checks
                     else:
                         # Remove from processed set if no longer incomplete
                         if row_key in processed_incomplete:
                             processed_incomplete.remove(row_key)
                             logger.info(f"✅ {drop_number} no longer incomplete")
+
+                        # Remove from feedback history if drop is completed or no longer incomplete
+                        if drop_number in feedback_sent_history:
+                            feedback_sent_history.remove(drop_number)
+                            logger.info(f"🔄 Feedback history cleared for {drop_number} - can be processed again if needed")
             
             # Log summary
             if incomplete_found > 0:

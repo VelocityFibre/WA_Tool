@@ -44,9 +44,13 @@ PROJECTS = {
     },
     'Mohadin': {
         'group_jid': '120363421532174586@g.us',
-        'group_name': 'Mohadin Activations 🥳'
+        'group_name': 'Mohadin Activations 🥳',
+        'communication_disabled': True  # SAFETY: Monitor only mode until Velo Test verified
     }
 }
+
+# SAFETY FLAG: Disable all communications to Mohadin group during Velo Test validation
+MOHADIN_COMMUNICATION_DISABLED = True
 
 # QA Step descriptions for clear feedback
 QA_STEPS = {
@@ -279,33 +283,90 @@ Thank you! 📸✅"""
 
     return message
 
+def send_feedback_to_agent(drop_number: str, project: str, message: str, dry_run: bool = False) -> bool:
+    """Send feedback message directly to the agent who submitted the drop number."""
+
+    try:
+        # Get the agent's WhatsApp number from database
+        conn = psycopg2.connect(NEON_DB_URL)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT user_name
+            FROM qa_photo_reviews
+            WHERE drop_number = %s AND project = %s
+            ORDER BY review_date DESC
+            LIMIT 1
+        """, (drop_number, project))
+
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not result:
+            logger.error(f"❌ Could not find agent for {drop_number} in {project}")
+            return False
+
+        agent_number = result[0]
+        project_config = PROJECTS.get(project)
+        if not project_config:
+            logger.error(f"❌ Unknown project: {project}")
+            return False
+
+        group_name = project_config['group_name']
+
+        # Format agent number for WhatsApp (add @s.whatsapp.net if not present)
+        if not agent_number.endswith('@s.whatsapp.net'):
+            agent_jid = f"{agent_number}@s.whatsapp.net"
+        else:
+            agent_jid = agent_number
+
+        if dry_run:
+            logger.info(f"🔍 DRY RUN: Would send to agent {agent_number} in {group_name}:")
+            logger.info(f"Message: {message}")
+            return True
+
+        # Send message directly to agent
+        success, response = whatsapp.send_message(agent_jid, message)
+
+        if success:
+            logger.info(f"✅ Feedback sent to agent {agent_number} for {drop_number}")
+            return True
+        else:
+            logger.error(f"❌ Failed to send feedback to agent {agent_number}: {response}")
+            return False
+
+    except Exception as e:
+        logger.error(f"❌ Error sending message to agent for {drop_number}: {e}")
+        return False
+
 def send_feedback_to_group(project: str, message: str, dry_run: bool = False) -> bool:
-    """Send feedback message to the appropriate WhatsApp group."""
-    
+    """Send feedback message to the appropriate WhatsApp group (LEGACY - use send_feedback_to_agent instead)."""
+
     project_config = PROJECTS.get(project)
     if not project_config:
         logger.error(f"❌ Unknown project: {project}")
         return False
-    
+
     group_jid = project_config['group_jid']
     group_name = project_config['group_name']
-    
+
     if dry_run:
         logger.info(f"🔍 DRY RUN: Would send to {group_name} ({group_jid}):")
         logger.info(f"Message: {message}")
         return True
-    
+
     try:
         # Send message to WhatsApp group
         success, response = whatsapp.send_message(group_jid, message)
-        
+
         if success:
             logger.info(f"✅ Feedback sent to {group_name}")
             return True
         else:
             logger.error(f"❌ Failed to send feedback to {group_name}: {response}")
             return False
-            
+
     except Exception as e:
         logger.error(f"❌ Error sending message to {group_name}: {e}")
         return False
@@ -369,8 +430,8 @@ def process_qa_feedback(dry_run: bool = False, hours_back: int = 24):
         # Create feedback message
         message = create_feedback_message(drop_number, missing_steps, project, assigned_agent)
         
-        # Send to appropriate group
-        if send_feedback_to_group(project, message, dry_run):
+        # Send feedback directly to the agent who submitted the drop number
+        if send_feedback_to_agent(drop_number, project, message, dry_run):
             if not dry_run:
                 mark_feedback_sent(drop_number)
             feedback_sent += 1

@@ -37,7 +37,7 @@ services:
       # Mount WhatsApp database
       - ./docker-data/whatsapp-sessions:/app/store:ro
     environment:
-      - WHATSAPP_API_URL=http://whatsapp-bridge:8080
+      - WHATSAPP_API_URL=http://whatsapp-bridge:8080/api
       - NEON_DB_URL=${NEON_DB_URL}
       - GSHEET_ID=${GSHEET_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
@@ -63,7 +63,7 @@ services:
       # Mount WhatsApp database
       - ./docker-data/whatsapp-sessions:/app/store:ro
     environment:
-      - WHATSAPP_API_URL=http://whatsapp-bridge:8080
+      - WHATSAPP_API_URL=http://whatsapp-bridge:8080/api
       - NEON_DB_URL=${NEON_DB_URL}
       - GSHEET_ID=${GSHEET_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
@@ -89,7 +89,7 @@ services:
       # Mount WhatsApp database
       - ./docker-data/whatsapp-sessions:/app/store:ro
     environment:
-      - WHATSAPP_API_URL=http://whatsapp-bridge:8080
+      - WHATSAPP_API_URL=http://whatsapp-bridge:8080/api
       - NEON_DB_URL=${NEON_DB_URL}
       - GSHEET_ID=${GSHEET_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
