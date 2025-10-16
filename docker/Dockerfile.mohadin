@@ -1,0 +1,46 @@
+# Dockerfile for Mohadin WhatsApp Group Service
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better Docker layer caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy core libraries and configuration
+COPY core/ ./core/
+COPY config/ ./config/
+COPY logs/ ./logs/
+
+# Copy the specific Mohadin service
+COPY services/mohadin_service/ ./services/mohadin_service/
+
+# Create non-root user for security
+RUN useradd -m -u 1001 waservice && \
+    chown -R waservice:waservice /app && \
+    mkdir -p /app/logs && \
+    chown waservice:waservice /app/logs
+
+# Switch to non-root user
+USER waservice
+
+# Set environment variables
+ENV GROUP_NAME=mohadin
+ENV SERVICE_PORT=8081
+ENV WHATSAPP_BRIDGE_URL=http://whatsapp-bridge:8080
+
+# Expose the service port
+EXPOSE 8081
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8081/health || exit 1
+
+# Start the Mohadin service
+CMD ["python", "services/mohadin_service/mohadin_service.py"]

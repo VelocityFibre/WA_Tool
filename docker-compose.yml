@@ -1,106 +1,176 @@
 version: '3.8'
 
+# WA_Tool Microservices Stack
+# Managed via Portainer at https://localhost:9443
+# Architecture: Isolated services per WhatsApp group
+
 services:
-  # WhatsApp Bridge with Privacy Filter
+  # WhatsApp Bridge - Core messaging service
   whatsapp-bridge:
     build:
       context: ./whatsapp-mcp/whatsapp-bridge
       dockerfile: Dockerfile
-    container_name: wa-bridge-privacy
+    container_name: wa-tool-whatsapp-bridge
     restart: unless-stopped
     ports:
       - "8080:8080"
     volumes:
-      # Persistent WhatsApp sessions and message data (privacy filtered)
       - ./docker-data/whatsapp-sessions:/app/store
       - ./docker-data/bridge-logs:/app/logs
+      - ./credentials.json:/app/credentials.json:ro
     environment:
       - NEON_DB_URL=${NEON_DB_URL}
+      - GSHEET_ID=${GSHEET_ID}
+      - SERVICE_NAME=whatsapp-bridge
     networks:
-      - wa-network
+      - wa-tool-network
     healthcheck:
-      disable: true
+      test: ["CMD-SHELL", "ss -tln | grep :8080 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.wa-tool.service=whatsapp-bridge"
+      - "com.wa-tool.description=WhatsApp messaging bridge"
+      - "com.wa-tool.port=8080"
 
-  # Realtime Drop Monitor
-  drop-monitor:
+  # Mohadin Service - Safe parallel testing mode
+  mohadin-service:
     build:
-      context: ./whatsapp-mcp/whatsapp-mcp-server
-      dockerfile: Dockerfile
-    container_name: wa-drop-monitor
+      context: .
+      dockerfile: docker/Dockerfile.mohadin
+    container_name: wa-tool-mohadin
     restart: unless-stopped
+    ports:
+      - "8081:8081"
     depends_on:
-      - whatsapp-bridge
+      whatsapp-bridge:
+        condition: service_healthy
     volumes:
+      - ./config:/app/config:ro
       - ./docker-data/monitor-logs:/app/logs
-      # Mount Google credentials if available
-      - ./credentials.json:/app/credentials.json:ro
-      # Mount WhatsApp database
+      - ./services:/app/services:ro
+      - ./core:/app/core:ro
       - ./docker-data/whatsapp-sessions:/app/store:ro
+      - ./credentials.json:/app/credentials.json:ro
     environment:
-      - WHATSAPP_API_URL=http://whatsapp-bridge:8080/api
+      - SERVICE_ID=mohadin
+      - SERVICE_PORT=8081
+      - CHECK_INTERVAL=15
       - NEON_DB_URL=${NEON_DB_URL}
       - GSHEET_ID=${GSHEET_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
       - WHATSAPP_DB_PATH=/app/store/messages.db
+      - PARALLEL_TESTING_MODE=true
     networks:
-      - wa-network
+      - wa-tool-network
     healthcheck:
-      disable: true
-    command: ["python", "realtime_drop_monitor.py", "--interval", "15"]
+      test: ["CMD-SHELL", "python3 -c 'import socket; s=socket.socket(); s.connect((\"localhost\", 8081)); s.close()' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.wa-tool.service=mohadin"
+      - "com.wa-tool.description=Mohadin WhatsApp monitoring (safe parallel testing)"
+      - "com.wa-tool.port=8081"
+      - "com.wa-tool.mode=testing"
+      - "com.wa-tool.safety=read-only-production"
+    command: ["python3", "/app/services/mohadin_service/mohadin_service.py"]
 
-  # QA Monitor Service
-  qa-monitor:
+  # Velo Test Service - Live production mode
+  velo-test-service:
     build:
-      context: ./whatsapp-mcp/whatsapp-mcp-server
-      dockerfile: Dockerfile
-    container_name: wa-qa-monitor
+      context: .
+      dockerfile: docker/Dockerfile.velo_test
+    container_name: wa-tool-velo-test
     restart: unless-stopped
+    ports:
+      - "8082:8082"
     depends_on:
-      - whatsapp-bridge
+      whatsapp-bridge:
+        condition: service_healthy
     volumes:
+      - ./config:/app/config:ro
       - ./docker-data/monitor-logs:/app/logs
-      - ./credentials.json:/app/credentials.json:ro
-      # Mount WhatsApp database
+      - ./services:/app/services:ro
+      - ./core:/app/core:ro
       - ./docker-data/whatsapp-sessions:/app/store:ro
+      - ./credentials.json:/app/credentials.json:ro
     environment:
-      - WHATSAPP_API_URL=http://whatsapp-bridge:8080/api
+      - SERVICE_ID=velo_test
+      - SERVICE_PORT=8082
+      - CHECK_INTERVAL=15
       - NEON_DB_URL=${NEON_DB_URL}
       - GSHEET_ID=${GSHEET_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
       - WHATSAPP_DB_PATH=/app/store/messages.db
+      - PARALLEL_TESTING_MODE=false
     networks:
-      - wa-network
+      - wa-tool-network
     healthcheck:
-      disable: true
-    command: ["python", "google_sheets_qa_monitor.py", "--interval", "60"]
+      test: ["CMD-SHELL", "python3 -c 'import socket; s=socket.socket(); s.connect((\"localhost\", 8082)); s.close()' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.wa-tool.service=velo-test"
+      - "com.wa-tool.description=Velo Test WhatsApp monitoring (live production)"
+      - "com.wa-tool.port=8082"
+      - "com.wa-tool.mode=production"
+      - "com.wa-tool.safety=live-operations"
+    command: ["python3", "/app/services/velo_test_service/velo_test_service.py"]
 
-  # Mohadin Resubmission Monitor
-  mohadin-monitor:
+  # Lawley Service - Safe parallel testing mode
+  lawley-service:
     build:
-      context: ./whatsapp-mcp/whatsapp-mcp-server
-      dockerfile: Dockerfile
-    container_name: wa-mohadin-monitor
+      context: .
+      dockerfile: docker/Dockerfile.lawley
+    container_name: wa-tool-lawley
     restart: unless-stopped
+    ports:
+      - "8083:8083"
     depends_on:
-      - whatsapp-bridge
+      whatsapp-bridge:
+        condition: service_healthy
     volumes:
+      - ./config:/app/config:ro
       - ./docker-data/monitor-logs:/app/logs
-      - ./credentials.json:/app/credentials.json:ro
-      # Mount WhatsApp database
+      - ./services:/app/services:ro
+      - ./core:/app/core:ro
       - ./docker-data/whatsapp-sessions:/app/store:ro
+      - ./credentials.json:/app/credentials.json:ro
     environment:
-      - WHATSAPP_API_URL=http://whatsapp-bridge:8080/api
+      - SERVICE_ID=lawley
+      - SERVICE_PORT=8083
+      - CHECK_INTERVAL=15
       - NEON_DB_URL=${NEON_DB_URL}
       - GSHEET_ID=${GSHEET_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
       - WHATSAPP_DB_PATH=/app/store/messages.db
+      - PARALLEL_TESTING_MODE=true
     networks:
-      - wa-network
+      - wa-tool-network
     healthcheck:
-      disable: true
-    command: ["python", "mohadin_message_monitor.py", "--interval", "30"]
+      test: ["CMD-SHELL", "python3 -c 'import socket; s=socket.socket(); s.connect((\"localhost\", 8083)); s.close()' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.wa-tool.service=lawley"
+      - "com.wa-tool.description=Lawley WhatsApp monitoring (safe parallel testing)"
+      - "com.wa-tool.port=8083"
+      - "com.wa-tool.mode=testing"
+      - "com.wa-tool.safety=read-only-production"
+    command: ["python3", "/app/services/lawley_service/lawley_service.py"]
 
 networks:
-  wa-network:
+  wa-tool-network:
     driver: bridge
-    name: wa-network
+    name: wa-tool-network
+    labels:
+      - "com.wa-tool.network=main"
+      - "com.wa-tool.description=WA_Tool microservices network"

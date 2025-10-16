@@ -1,0 +1,83 @@
+# Docker ignore file for WA_Tool
+# Exclude development and temporary files
+
+# Version control
+.git/
+.gitignore
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs (we'll create fresh log directories)
+logs/*.log
+*.log
+
+# Documentation (not needed in containers)
+docs/
+*.md
+README*
+
+# Test files
+tests/
+*test*
+pytest.ini
+
+# Backup files
+*.bak
+*.backup
+*_backup_*
+
+# Configuration files that should be mounted as volumes
+# (uncomment if you want to exclude them)
+# config/*.json
+# config/*.yaml
+
+# Docker files themselves
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Development scripts
+scripts/dev/
+*.dev.py
+
+# Cache directories
+.cache/
+.pytest_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Large application directories not needed for services
+whatsapp_assistant_app/
+whatsapp-mcp/
+bull_image.jpg
+media/
